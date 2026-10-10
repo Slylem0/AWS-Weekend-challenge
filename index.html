@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dr. Cloud 🩺 · First aid for AWS errors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #070b16;
+    --bg-2: #0d1324;
+    --panel: #121a30;
+    --panel-2: #0f1526;
+    --border: #22304f;
+    --bubble-bot: #15223c;
+    --bubble-user: #1f6feb;
+    --accent: #38bdf8;
+    --accent-2: #22d3ee;
+    --text: #eaf1ff;
+    --muted: #93a4c6;
+    --ok: #34d399;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(56,189,248,0.12), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(34,211,238,0.10), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex; justify-content: center; align-items: stretch;
+  }
+  .app {
+    width: 100%; max-width: 780px; height: 100vh;
+    display: flex; flex-direction: column; padding: 20px 18px 18px;
+  }
+
+  /* Header card */
+  .hero {
+    display: flex; align-items: center; gap: 14px;
+    background: linear-gradient(135deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border); border-radius: 18px;
+    padding: 16px 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .hero .badge {
+    width: 54px; height: 54px; flex: none; border-radius: 16px;
+    display: grid; place-items: center; font-size: 1.7rem;
+    background: radial-gradient(circle at 30% 30%, #0ea5e9, #0369a1);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15), 0 6px 18px rgba(14,165,233,0.4);
+  }
+  .hero h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.02em; }
+  .hero p { margin: 3px 0 0; color: var(--muted); font-size: 0.9rem; }
+  .hero .status { margin-left: auto; display: flex; align-items: center; gap: 7px;
+    color: var(--muted); font-size: 0.8rem; }
+  .hero .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok);
+    box-shadow: 0 0 0 4px rgba(52,211,153,0.18); }
+
+  /* Chat */
+  #chat {
+    flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+    gap: 16px; padding: 22px 4px; scroll-behavior: smooth;
+  }
+  #chat::-webkit-scrollbar { width: 8px; }
+  #chat::-webkit-scrollbar-thumb { background: #1d2a47; border-radius: 8px; }
+
+  .msg { display: flex; gap: 12px; align-items: flex-start; animation: rise 0.25s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .msg .avatar {
+    width: 38px; height: 38px; flex: none; border-radius: 12px;
+    display: grid; place-items: center; font-size: 1.2rem;
+    border: 1px solid var(--border);
+  }
+  .msg.bot .avatar { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
+  .msg.user .avatar { background: #1b2947; }
+  .msg .bubble {
+    padding: 13px 16px; border-radius: 16px; line-height: 1.55;
+    max-width: 82%; border: 1px solid var(--border);
+    font-size: 0.96rem;
+  }
+  .msg.bot .bubble { background: var(--bubble-bot); border-top-left-radius: 4px; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg.user .bubble { background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none; border-top-right-radius: 4px; }
+  .bubble p:first-child { margin-top: 0; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble h1, .bubble h2, .bubble h3 { font-size: 1rem; margin: 12px 0 6px; }
+  .bubble pre { background: #070c18; padding: 12px; border-radius: 10px;
+    overflow-x: auto; border: 1px solid #1b2742; font-size: 0.85rem; }
+  .bubble code { background: #070c18; padding: 2px 6px; border-radius: 6px;
+    font-size: 0.88em; }
+  .bubble pre code { background: none; padding: 0; }
+  .bubble ol, .bubble ul { margin: 6px 0; padding-left: 20px; }
+  .bubble li { margin: 4px 0; }
+
+  /* Typing dots */
+  .dots span { display: inline-block; width: 7px; height: 7px; margin-right: 4px;
+    background: var(--muted); border-radius: 50%; animation: blink 1.2s infinite; }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  .typing-label { color: var(--muted); font-style: italic; margin-left: 6px; font-size: 0.88rem; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+  /* Examples */
+  .examples { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 2px 10px; }
+  .examples button {
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 9px 14px; cursor: pointer; font-size: 0.82rem; font-family: inherit;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .examples button:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+  /* Composer */
+  form {
+    display: flex; gap: 10px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 16px; padding: 8px 8px 8px 14px;
+  }
+  form:focus-within { border-color: var(--accent); }
+  input {
+    flex: 1; background: transparent; border: none; color: var(--text);
+    font-size: 1rem; font-family: inherit; padding: 10px 2px;
+  }
+  input:focus { outline: none; }
+  input::placeholder { color: #6c7ca0; }
+  button.send {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border: none; color: #042436; border-radius: 11px; padding: 0 20px;
+    font-weight: 700; font-family: inherit; cursor: pointer; font-size: 0.95rem;
+  }
+  button.send:disabled { opacity: 0.5; cursor: not-allowed; }
+  footer { text-align: center; color: #5f6f90; font-size: 0.72rem; margin-top: 10px; }
+  footer b { color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hero">
+    <div class="badge">🩺</div>
+    <div>
+      <h1>Dr. Cloud</h1>
+      <p>First aid for AWS errors. Paste what hurts, I've seen worse.</p>
+    </div>
+    <div class="status"><span class="dot"></span> En consulta</div>
+  </div>
+
+  <div id="chat"></div>
+
+  <div class="examples" id="examples">
+    <button data-q="An error occurred (AccessDenied) when calling the GetObject operation: Access Denied">🔒 AccessDenied en S3</button>
+    <button data-q="Task timed out after 3.00 seconds">⏱️ Lambda timeout</button>
+    <button data-q="An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist">🪣 NoSuchBucket</button>
+  </div>
+
+  <form id="form">
+    <input id="input" autocomplete="off" placeholder="Pega aquí tu error de AWS (sin llaves ni secretos)..." />
+    <button class="send" id="send" type="submit">Enviar</button>
+  </form>
+
+  <footer>Dr. Cloud · <b>Amazon Bedrock</b> + <b>Strands Agents</b> + <b>FastAPI</b> en AWS App Runner</footer>
+</div>
+
+<script>
+  const chat = document.getElementById("chat");
+  const form = document.getElementById("form");
+  const input = document.getElementById("input");
+  const send = document.getElementById("send");
+  const examples = document.getElementById("examples");
+
+  const WAITING = [
+    "Tomando el pulso a tu stack",
+    "Revisando los signos vitales de IAM",
+    "Leyendo la radiografía de CloudWatch",
+    "Consultando el manual médico de AWS",
+  ];
+
+  function addMessage(role, html) {
+    const msg = document.createElement("div");
+    msg.className = "msg " + role;
+    msg.innerHTML = `<div class="avatar">${role === "bot" ? "🩺" : "🧑‍💻"}</div>
+                     <div class="bubble">${html}</div>`;
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
+    return msg;
+  }
+
+  addMessage("bot", marked.parse(
+    "¡Hola! Soy **Dr. Cloud** 👋 Respira hondo, todo ingeniero de la nube ha visto un error en rojo. " +
+    "Pégame tu error (sin llaves ni secretos, por favor) o elige un ejemplo abajo."
+  ));
+
+  async function askDrCloud(question) {
+    addMessage("user", marked.parse(question));
+    examples.style.display = "none";
+    send.disabled = true;
+    const label = WAITING[Math.floor(Math.random() * WAITING.length)];
+    const pending = addMessage("bot",
+      `<span class="dots"><span></span><span></span><span></span></span>
+       <span class="typing-label">${label}...</span>`);
+
+    try {
+      const res = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: question }),
+      });
+      const data = await res.json();
+      pending.querySelector(".bubble").innerHTML = marked.parse(data.reply);
+    } catch (e) {
+      pending.querySelector(".bubble").innerHTML =
+        "🤒 No pude contactar al consultorio. Revisa tu conexión e inténtalo de nuevo.";
+    } finally {
+      send.disabled = false;
+      chat.scrollTop = chat.scrollHeight;
+    }
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (!q) return;
+    input.value = "";
+    askDrCloud(q);
+  });
+
+  examples.addEventListener("click", (e) => {
+    if (e.target.tagName === "BUTTON") askDrCloud(e.target.dataset.q);
+  });
+</script>
+</body>
+</html>

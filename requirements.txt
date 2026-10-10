@@ -1,0 +1,4 @@
+strands-agents>=0.1.0
+fastapi>=0.110
+uvicorn>=0.27
+boto3>=1.35
